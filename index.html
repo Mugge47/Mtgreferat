@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MødeReferat">
+<title>MødeReferat</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a2e;
+    --ink-soft: #4a4a6a;
+    --paper: #f5f3ee;
+    --paper-dark: #ede9e0;
+    --accent: #2c4a7c;
+    --accent-light: #4a6fa5;
+    --accent-pale: #e8edf5;
+    --gold: #b8963e;
+    --red: #8b2635;
+    --border: #d4cfc4;
+    --white: #ffffff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: var(--ink);
+    color: white;
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.2);
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.01em;
+  }
+  header .sub {
+    font-size: 0.7rem;
+    opacity: 0.55;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  .settings-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    padding: 7px 13px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-family: 'Source Sans 3', sans-serif;
+    transition: background 0.2s;
+  }
+  .settings-btn:hover { background: rgba(255,255,255,0.2); }
+
+  main { flex: 1; overflow-y: auto; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* SETUP */
+  .setup-hero {
+    background: linear-gradient(150deg, var(--ink) 0%, var(--accent) 100%);
+    padding: 44px 28px 32px;
+    color: white;
+    text-align: center;
+  }
+  .setup-hero .icon { font-size: 3rem; margin-bottom: 14px; }
+  .setup-hero h2 { font-family: 'Playfair Display', serif; font-size: 1.8rem; margin-bottom: 8px; }
+  .setup-hero p { font-size: 0.9rem; opacity: 0.75; line-height: 1.6; }
+
+  .setup-form { padding: 28px 22px; }
+
+  .field-group { margin-bottom: 22px; }
+  label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 7px;
+  }
+  input[type="text"], input[type="email"], input[type="password"] {
+    width: 100%;
+    padding: 13px 15px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 1rem;
+    background: white;
+    color: var(--ink);
+    -webkit-appearance: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(44,74,124,0.12);
+  }
+  .help-text { font-size: 0.78rem; color: var(--ink-soft); margin-top: 5px; line-height: 1.4; }
+
+  .btn {
+    display: block; width: 100%;
+    padding: 15px; border: none; border-radius: 10px;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.95rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+    text-align: center; -webkit-appearance: none;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: var(--ink); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-outline { background: transparent; color: var(--accent); border: 1.5px solid var(--border); }
+  .btn-outline:hover { border-color: var(--accent); background: var(--accent-pale); }
+  .btn + .btn { margin-top: 10px; }
+
+  /* HOME SCREEN */
+  .home-wrap { padding: 24px 20px; }
+  .home-card {
+    background: white;
+    border-radius: 14px;
+    border: 1.5px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .home-card-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--accent-pale);
+  }
+  .home-card-header h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    color: var(--accent);
+    margin-bottom: 3px;
+  }
+  .home-card-header p { font-size: 0.82rem; color: var(--ink-soft); }
+  .home-card-body { padding: 18px 20px; }
+
+  .agenda-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--paper);
+    margin-bottom: 14px;
+  }
+  .agenda-zone:hover { border-color: var(--accent); background: var(--accent-pale); }
+  .agenda-zone .icon { font-size: 1.8rem; margin-bottom: 8px; }
+  .agenda-zone p { font-size: 0.88rem; color: var(--ink-soft); }
+  .agenda-zone.loaded { border-style: solid; border-color: var(--accent); background: var(--accent-pale); }
+  .agenda-loaded-text { font-size: 0.85rem; color: var(--accent); font-weight: 600; }
+
+  .org-field { margin-bottom: 14px; }
+
+  /* RECORD */
+  .record-wrap { padding: 24px 20px; text-align: center; }
+
+  .agenda-preview {
+    background: white;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    padding: 16px 18px;
+    margin-bottom: 22px;
+    text-align: left;
+  }
+  .agenda-preview h4 {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .agenda-point {
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    padding: 4px 0;
+    border-bottom: 1px solid var(--paper-dark);
+    line-height: 1.4;
+  }
+  .agenda-point:last-child { border-bottom: none; }
+  .no-agenda {
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    font-style: italic;
+    text-align: center;
+    padding: 8px 0;
+  }
+
+  .record-circle {
+    width: 120px; height: 120px;
+    border-radius: 50%; border: none;
+    cursor: pointer;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    margin: 28px auto;
+    transition: all 0.3s;
+    font-family: 'Source Sans 3', sans-serif;
+    -webkit-appearance: none;
+  }
+  .record-circle.idle {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--ink) 100%);
+    box-shadow: 0 8px 28px rgba(44,74,124,0.35);
+  }
+  .record-circle.recording {
+    background: linear-gradient(135deg, #c0392b 0%, #8b2635 100%);
+    box-shadow: 0 8px 28px rgba(139,38,53,0.4);
+    animation: pulse-rec 1.5s infinite;
+  }
+  @keyframes pulse-rec {
+    0%,100% { box-shadow: 0 8px 28px rgba(139,38,53,0.4); }
+    50% { box-shadow: 0 8px 44px rgba(139,38,53,0.6), 0 0 0 12px rgba(139,38,53,0.1); }
+  }
+  .record-circle.paused {
+    background: linear-gradient(135deg, var(--gold) 0%, #8a6020 100%);
+    box-shadow: 0 8px 28px rgba(184,150,62,0.4);
+  }
+  .record-circle .label { color: white; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px; }
+
+  .timer { font-size: 2rem; font-family: 'Playfair Display', serif; color: var(--accent); margin: 4px 0; font-variant-numeric: tabular-nums; }
+  .timer-label { font-size: 0.78rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.07em; }
+  .chunk-info { font-size: 0.78rem; color: var(--gold); margin-top: 6px; }
+
+  .warning-box {
+    background: #fef9ec;
+    border: 1.5px solid #e8d5a0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 0.82rem;
+    color: #7a5c1e;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  /* PROCESSING */
+  .processing-wrap { padding: 56px 28px; text-align: center; }
+  .spinner {
+    width: 56px; height: 56px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 24px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .processing-wrap h2 { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--ink); margin-bottom: 10px; }
+  .processing-msg { font-size: 0.88rem; color: var(--ink-soft); line-height: 1.5; margin-bottom: 6px; }
+  .progress-bar-wrap { background: var(--border); border-radius: 10px; height: 6px; margin: 20px 0 10px; overflow: hidden; }
+  .progress-bar { background: var(--accent); height: 100%; border-radius: 10px; transition: width 0.5s; width: 0%; }
+  .progress-text { font-size: 0.78rem; color: var(--ink-soft); }
+
+  /* DONE */
+  .done-wrap { padding: 56px 24px; text-align: center; }
+  .done-wrap .icon { font-size: 4rem; margin-bottom: 18px; }
+  .done-wrap h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--ink); margin-bottom: 10px; }
+  .done-wrap p { font-size: 0.92rem; color: var(--ink-soft); line-height: 1.6; margin-bottom: 28px; }
+
+  /* ERROR */
+  .error-box {
+    background: #fdf0ef; border: 1.5px solid #e8b4af;
+    border-radius: 8px; padding: 12px 14px;
+    font-size: 0.88rem; color: var(--red);
+    margin: 14px 0; line-height: 1.5; display: none;
+  }
+  .error-box.show { display: block; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 200;
+    align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: white; border-radius: 18px 18px 0 0;
+    padding: 26px 22px 40px; width: 100%; max-width: 500px;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--ink); margin-bottom: 18px; }
+  .modal-close { float: right; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--ink-soft); margin-top: -4px; }
+
+  hr.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📋 MødeReferat</h1>
+    <div class="sub">Automatisk referatskrivning</div>
+  </div>
+  <button class="settings-btn" onclick="showSettings()">⚙ Indstillinger</button>
+</header>
+
+<main>
+
+  <!-- SETUP -->
+  <div id="screen-setup" class="screen active">
+    <div class="setup-hero">
+      <div class="icon">📋</div>
+      <h2>Opsætning</h2>
+      <p>Indtast din OpenAI API-nøgle og din e-mailadresse.</p>
+    </div>
+    <div class="setup-form">
+      <div class="field-group">
+        <label>OpenAI API-nøgle</label>
+        <input type="password" id="setup-apikey" placeholder="sk-..." autocomplete="off">
+        <p class="help-text">Find din nøgle på <strong>platform.openai.com</strong> → API keys.</p>
+      </div>
+      <div class="field-group">
+        <label>Din e-mailadresse</label>
+        <input type="email" id="setup-email" placeholder="din@email.dk">
+      </div>
+      <div id="setup-error" class="error-box"></div>
+      <button class="btn btn-primary" onclick="saveSetup()">Gem og kom i gang →</button>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div id="screen-home" class="screen">
+    <div class="home-wrap">
+
+      <div class="home-card">
+        <div class="home-card-header">
+          <h3>Forening / organisation</h3>
+          <p>Skrives øverst i referatet</p>
+        </div>
+        <div class="home-card-body">
+          <div class="org-field">
+            <input type="text" id="org-name" placeholder="F.eks. Kunstnerforeningen af 18. november" value="">
+          </div>
+          <div class="org-field">
+            <input type="text" id="meeting-title" placeholder="Møde titel (f.eks. Bestyrelsesmøde)">
+          </div>
+          <div class="org-field">
+            <input type="text" id="attendees" placeholder="Til stede: Niels, Eva, Mogens...">
+          </div>
+          <div class="org-field">
+            <input type="text" id="absent" placeholder="Afbud: (valgfrit)">
+          </div>
+        </div>
+      </div>
+
+      <div class="home-card">
+        <div class="home-card-header">
+          <h3>Dagsorden</h3>
+          <p>Upload dagsorden — eller optag uden og lad AI strukturere referatet</p>
+        </div>
+        <div class="home-card-body">
+          <div class="agenda-zone" id="agenda-zone" onclick="document.getElementById('agenda-file').click()">
+            <div class="icon">📄</div>
+            <p id="agenda-zone-text">Tryk for at uploade dagsorden (.docx eller .txt)</p>
+          </div>
+          <input type="file" id="agenda-file" accept=".docx,.doc,.txt" style="display:none" onchange="handleAgendaUpload(event)">
+          <button class="btn btn-outline" onclick="clearAgenda()" id="clear-agenda-btn" style="display:none;margin-bottom:10px">✕ Fjern dagsorden</button>
+          <button class="btn btn-primary" onclick="goToRecord()">Fortsæt til optagelse →</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RECORD -->
+  <div id="screen-record" class="screen">
+    <div class="record-wrap">
+
+      <div class="agenda-preview" id="agenda-preview">
+        <h4>Dagsorden</h4>
+        <div id="agenda-points-list"></div>
+      </div>
+
+      <div class="warning-box">
+        📱 Hold skærmen aktiv under optagelsen. Optagelsen opdeles automatisk hver 20 min.
+      </div>
+
+      <div id="record-error" class="error-box"></div>
+
+      <button class="record-circle idle" id="record-btn" onclick="toggleRecording()">
+        <span class="icon" id="record-icon">🎙</span>
+        <span class="label" id="record-label">Optag</span>
+      </button>
+
+      <div class="timer" id="timer">00:00</div>
+      <div class="timer-label" id="timer-label">Tryk for at starte mødet</div>
+      <div class="chunk-info" id="chunk-info"></div>
+
+      <button class="btn btn-outline" id="pause-btn" onclick="togglePause()" style="display:none;margin-top:16px">⏸ &nbsp;Pause</button>
+      <button class="btn btn-outline" id="keepawake-btn" onclick="toggleKeepAwake()" style="display:none;margin-top:10px">📳 &nbsp;Hold vågen: Fra</button>
+
+      <hr class="divider">
+      <p style="font-size:0.82rem;color:var(--ink-soft);margin-bottom:10px;text-align:left">Eller upload en eksisterende optagelse:</p>
+      <input type="file" id="audio-file" accept="audio/*" style="display:none" onchange="handleAudioUpload(event)">
+      <button class="btn btn-outline" onclick="document.getElementById('audio-file').click()">📁 &nbsp;Upload lydfil</button>
+      <button class="btn btn-outline" onclick="showScreen('screen-home')" style="margin-top:10px">← Tilbage</button>
+    </div>
+  </div>
+
+  <!-- PROCESSING -->
+  <div id="screen-processing" class="screen">
+    <div class="processing-wrap">
+      <div class="spinner"></div>
+      <h2>Skriver referat...</h2>
+      <p class="processing-msg" id="proc-msg">Forbereder...</p>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <p class="progress-text" id="progress-text"></p>
+    </div>
+  </div>
+
+  <!-- DONE -->
+  <div id="screen-done" class="screen">
+    <div class="done-wrap">
+      <div class="icon">✅</div>
+      <h2>Referat klar!</h2>
+      <p id="done-msg">Referatet er sendt. Tilføj underskrift og eventuelle bilag.</p>
+      <button class="btn btn-primary" onclick="shareAgain()">📤 &nbsp;Del referat igen</button>
+      <button class="btn btn-outline" onclick="startNew()" style="margin-top:10px">🔄 &nbsp;Nyt møde</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeSettings()">×</button>
+    <h3>⚙ Indstillinger</h3>
+    <div class="field-group">
+      <label>OpenAI API-nøgle</label>
+      <input type="password" id="settings-apikey" placeholder="sk-...">
+    </div>
+    <div class="field-group">
+      <label>E-mailadresse</label>
+      <input type="email" id="settings-email">
+    </div>
+    <button class="btn btn-primary" onclick="saveSettingsModal()">Gem</button>
+    <button class="btn btn-outline" onclick="closeSettings()">Annuller</button>
+  </div>
+</div>
+
+<script>
+// ===================== STATE =====================
+let mediaRecorder = null;
+let audioChunks = [];
+let allChunks = []; // array of Blobs, one per chunk
+let recordingTimer = null;
+let chunkTimer = null;
+let seconds = 0;
+let chunkSeconds = 0;
+let CHUNK_DURATION = 20 * 60; // 20 minutes per chunk
+let agendaText = '';
+let lastReferat = '';
+
+let isPaused = false;
+
+// ===================== INIT =====================
+window.onload = () => {
+  const key = localStorage.getItem('mr_apikey');
+  const email = localStorage.getItem('mr_email');
+  if (key && email) showScreen('screen-home');
+  const org = localStorage.getItem('mr_org');
+  const title = localStorage.getItem('mr_title');
+  if (org) document.getElementById('org-name').value = org;
+  if (title) document.getElementById('meeting-title').value = title;
+};
+
+// ===================== SCREENS =====================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ===================== SETUP =====================
+function saveSetup() {
+  const key = document.getElementById('setup-apikey').value.trim();
+  const email = document.getElementById('setup-email').value.trim();
+  const err = document.getElementById('setup-error');
+  if (!key.startsWith('sk-')) { err.textContent = 'API-nøglen skal starte med "sk-".'; err.classList.add('show'); return; }
+  if (!email.includes('@')) { err.textContent = 'Indtast en gyldig e-mailadresse.'; err.classList.add('show'); return; }
+  err.classList.remove('show');
+  localStorage.setItem('mr_apikey', key);
+  localStorage.setItem('mr_email', email);
+  showScreen('screen-home');
+}
+
+// ===================== SETTINGS =====================
+function showSettings() {
+  document.getElementById('settings-apikey').value = localStorage.getItem('mr_apikey') || '';
+  document.getElementById('settings-email').value = localStorage.getItem('mr_email') || '';
+  document.getElementById('settings-modal').classList.add('open');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+function saveSettingsModal() {
+  const key = document.getElementById('settings-apikey').value.trim();
+  const email = document.getElementById('settings-email').value.trim();
+  if (key) localStorage.setItem('mr_apikey', key);
+  if (email) localStorage.setItem('mr_email', email);
+  closeSettings();
+}
+
+// ===================== AGENDA UPLOAD =====================
+async function handleAgendaUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    if (file.name.endsWith('.txt')) {
+      try {
+        agendaText = await file.text(); // UTF-8
+        // Tjek om danske tegn ser forkerte ud (tegn på Windows-1252)
+        if (agendaText.includes('Ã¸') || agendaText.includes('Ã¦') || agendaText.includes('Ã…')) {
+          throw new Error('not utf8');
+        }
+      } catch(e) {
+        // Prøv Windows-1252
+        const ab = await file.arrayBuffer();
+        agendaText = new TextDecoder('windows-1252').decode(ab);
+      }
+    } else if (file.name.endsWith('.docx')) {
+      agendaText = await extractDocxText(file);
+    } else if (file.name.endsWith('.doc')) {
+      throw new Error('.doc-filer understøttes ikke direkte. Gem filen som .docx eller .txt og prøv igen.');
+    } else {
+      agendaText = await file.text();
+    }
+    // Trim to max 4000 chars to stay within token limits
+    if (agendaText.length > 4000) agendaText = agendaText.slice(0, 4000);
+    showAgendaLoaded(file.name);
+  } catch(e) {
+    agendaText = '';
+    alert('Kunne ikke læse filen: ' + e.message);
+  }
+}
+
+async function extractDocxText(file) {
+  const ab = await file.arrayBuffer();
+  const bytes = new Uint8Array(ab);
+
+  // Find word/document.xml inside the zip
+  // Simple zip parser — find PK local file headers
+  const text = await readZipEntry(bytes, 'word/document.xml');
+  if (!text) throw new Error('Kunne ikke finde tekst i dokumentet');
+
+  // Strip all XML tags, decode entities, clean up whitespace
+  return text
+    .replace(/<w:p[ >]/g, '\n<w:p>')   // paragraph breaks
+    .replace(/<w:br[^>]*>/g, '\n')      // line breaks
+    .replace(/<[^>]+>/g, '')            // remove all tags
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+async function readZipEntry(bytes, targetPath) {
+  // Walk through ZIP local file headers (PK\x03\x04)
+  let i = 0;
+  const dec = new TextDecoder('utf-8', {fatal: false});
+  while (i < bytes.length - 30) {
+    // Local file header signature
+    if (bytes[i]===0x50 && bytes[i+1]===0x4B && bytes[i+2]===0x03 && bytes[i+3]===0x04) {
+      const compression = bytes[i+8] | (bytes[i+9]<<8);
+      const compSize    = bytes[i+18] | (bytes[i+19]<<8) | (bytes[i+20]<<16) | (bytes[i+21]<<24);
+      const uncompSize  = bytes[i+22] | (bytes[i+23]<<8) | (bytes[i+24]<<16) | (bytes[i+25]<<24);
+      const fnLen       = bytes[i+26] | (bytes[i+27]<<8);
+      const extraLen    = bytes[i+28] | (bytes[i+29]<<8);
+      const fnBytes     = bytes.slice(i+30, i+30+fnLen);
+      const fn          = dec.decode(fnBytes);
+      const dataStart   = i + 30 + fnLen + extraLen;
+
+      if (fn === targetPath) {
+        const compData = bytes.slice(dataStart, dataStart + compSize);
+        if (compression === 0) {
+          // No compression
+          return dec.decode(compData);
+        } else if (compression === 8) {
+          // Deflate
+          const ds = new DecompressionStream('deflate-raw');
+          const writer = ds.writable.getWriter();
+          const reader = ds.readable.getReader();
+          writer.write(compData);
+          writer.close();
+          const chunks = [];
+          while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            chunks.push(value);
+          }
+          const total = chunks.reduce((a,c) => a+c.length, 0);
+          const out = new Uint8Array(total);
+          let off = 0;
+          for (const c of chunks) { out.set(c, off); off += c.length; }
+          return dec.decode(out);
+        }
+      }
+      i = dataStart + compSize;
+    } else {
+      i++;
+    }
+  }
+  return null;
+}
+
+function showAgendaLoaded(filename) {
+  const zone = document.getElementById('agenda-zone');
+  zone.classList.add('loaded');
+  document.getElementById('agenda-zone-text').innerHTML = '<span class="agenda-loaded-text">✓ ' + filename + '</span>';
+  document.getElementById('clear-agenda-btn').style.display = 'block';
+}
+
+function clearAgenda() {
+  agendaText = '';
+  const zone = document.getElementById('agenda-zone');
+  zone.classList.remove('loaded');
+  document.getElementById('agenda-zone-text').textContent = 'Tryk for at uploade dagsorden (.docx eller .txt)';
+  document.getElementById('clear-agenda-btn').style.display = 'none';
+  document.getElementById('agenda-file').value = '';
+}
+
+// ===================== GO TO RECORD =====================
+function goToRecord() {
+  localStorage.setItem('mr_org', document.getElementById('org-name').value);
+  localStorage.setItem('mr_title', document.getElementById('meeting-title').value);
+
+  // Build agenda preview
+  const list = document.getElementById('agenda-points-list');
+  const preview = document.getElementById('agenda-preview');
+  if (agendaText) {
+    const lines = agendaText.split('\n').filter(l => l.trim().length > 2).slice(0, 15);
+    list.innerHTML = lines.map(l => '<div class="agenda-point">' + l.trim() + '</div>').join('');
+  } else {
+    list.innerHTML = '<div class="no-agenda">Ingen dagsorden uploadet — AI strukturerer referatet frit</div>';
+  }
+  showScreen('screen-record');
+}
+
+// ===================== RECORDING =====================
+async function toggleRecording() {
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+    await startRecording();
+  } else {
+    stopRecording();
+  }
+}
+
+async function startRecording() {
+  const err = document.getElementById('record-error');
+  err.classList.remove('show');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if ('wakeLock' in navigator) {
+      try { window._wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
+    }
+    window._stream = stream;
+    allChunks = [];
+    audioChunks = [];
+    seconds = 0;
+    chunkSeconds = 0;
+
+    startNewChunk(stream);
+
+    recordingTimer = setInterval(() => {
+      seconds++;
+      chunkSeconds++;
+      document.getElementById('timer').textContent = formatTime(seconds);
+      // Auto-split every CHUNK_DURATION seconds
+      if (chunkSeconds >= CHUNK_DURATION) {
+        splitChunk(stream);
+        chunkSeconds = 0;
+      }
+      const chunkNum = allChunks.length + 1;
+      if (seconds > 60) {
+        document.getElementById('chunk-info').textContent = 'Del ' + chunkNum + ' · ' + formatTime(chunkSeconds) + ' i denne del';
+      }
+    }, 1000);
+
+    const btn = document.getElementById('record-btn');
+    btn.className = 'record-circle recording';
+    document.getElementById('record-icon').textContent = '⏹';
+    document.getElementById('record-label').textContent = 'Stop';
+    document.getElementById('timer-label').textContent = 'Møde i gang...';
+    document.getElementById('pause-btn').style.display = 'block';
+    document.getElementById('keepawake-btn').style.display = 'block';
+    isPaused = false;
+
+  } catch(e) {
+    err.textContent = 'Kunne ikke tilgå mikrofon: ' + e.message;
+    err.classList.add('show');
+  }
+}
+
+function startNewChunk(stream) {
+  audioChunks = [];
+  const mimeType = getSupportedMimeType();
+  mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+  mediaRecorder.start(1000);
+}
+
+function splitChunk(stream) {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(audioChunks, { type: getSupportedMimeType() || 'audio/webm' });
+      allChunks.push(blob);
+      startNewChunk(stream);
+    };
+    mediaRecorder.stop();
+  }
+}
+
+function stopRecording() {
+  clearInterval(recordingTimer);
+  isPaused = false;
+  document.getElementById('pause-btn').style.display = 'none';
+  document.getElementById('keepawake-btn').style.display = 'none';
+  document.getElementById('keepawake-btn').innerHTML = '📳 &nbsp;Hold vågen: Fra';
+  stopKeepAwake();
+  // WakeLock frigives IKKE her — holdes aktiv under upload (frigives i processAllChunks)
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(audioChunks, { type: getSupportedMimeType() || 'audio/webm' });
+      allChunks.push(blob);
+      processAllChunks();
+    };
+    mediaRecorder.stop();
+  }
+  const btn = document.getElementById('record-btn');
+  btn.className = 'record-circle idle';
+  document.getElementById('record-icon').textContent = '⏳';
+  document.getElementById('record-label').textContent = 'Behandler...';
+  document.getElementById('timer-label').textContent = 'Sender til analyse...';
+  document.getElementById('chunk-info').textContent = '';
+}
+
+// ===================== KEEP AWAKE =====================
+let keepAwakeInterval = null;
+let keepAwakeCtx = null;
+
+function toggleKeepAwake() {
+  const btn = document.getElementById('keepawake-btn');
+  if (keepAwakeInterval) {
+    stopKeepAwake();
+    btn.innerHTML = '📳 &nbsp;Hold vågen: Fra';
+  } else {
+    startKeepAwake();
+    btn.innerHTML = '🔔 &nbsp;Hold vågen: Til';
+  }
+}
+
+function startKeepAwake() {
+  try {
+    keepAwakeCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch(e) { return; }
+  keepAwakeInterval = setInterval(() => {
+    try {
+      const buf = keepAwakeCtx.createBuffer(1, keepAwakeCtx.sampleRate * 0.1, keepAwakeCtx.sampleRate);
+      const src = keepAwakeCtx.createBufferSource();
+      src.buffer = buf;
+      // Gain på 0 = lydløs
+      const gain = keepAwakeCtx.createGain();
+      gain.gain.value = 0;
+      src.connect(gain);
+      gain.connect(keepAwakeCtx.destination);
+      src.start();
+    } catch(e) {}
+  }, 1200000); // hvert 20. minut
+}
+
+function stopKeepAwake() {
+  if (keepAwakeInterval) { clearInterval(keepAwakeInterval); keepAwakeInterval = null; }
+  if (keepAwakeCtx) { keepAwakeCtx.close(); keepAwakeCtx = null; }
+}
+
+function togglePause() {
+  if (!mediaRecorder) return;
+  const pauseBtn = document.getElementById('pause-btn');
+  const btn = document.getElementById('record-btn');
+
+  if (!isPaused) {
+    // Pause
+    if (mediaRecorder.state === 'recording') mediaRecorder.pause();
+    clearInterval(recordingTimer);
+    isPaused = true;
+    btn.className = 'record-circle paused';
+    document.getElementById('record-icon').textContent = '⏸';
+    document.getElementById('record-label').textContent = 'Pause';
+    document.getElementById('timer-label').textContent = 'Optagelse på pause';
+    pauseBtn.innerHTML = '▶ &nbsp;Fortsæt';
+  } else {
+    // Resume
+    if (mediaRecorder.state === 'paused') mediaRecorder.resume();
+    recordingTimer = setInterval(() => {
+      seconds++;
+      chunkSeconds++;
+      document.getElementById('timer').textContent = formatTime(seconds);
+      if (chunkSeconds >= CHUNK_DURATION) {
+        splitChunk(window._stream);
+        chunkSeconds = 0;
+      }
+      const chunkNum = allChunks.length + 1;
+      if (seconds > 60) {
+        document.getElementById('chunk-info').textContent = 'Del ' + chunkNum + ' · ' + formatTime(chunkSeconds) + ' i denne del';
+      }
+    }, 1000);
+    isPaused = false;
+    btn.className = 'record-circle recording';
+    document.getElementById('record-icon').textContent = '⏹';
+    document.getElementById('record-label').textContent = 'Stop';
+    document.getElementById('timer-label').textContent = 'Møde i gang...';
+    pauseBtn.innerHTML = '⏸ &nbsp;Pause';
+  }
+}
+
+function handleAudioUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  allChunks = [file];
+  processAllChunks();
+}
+
+// ===================== PROCESSING =====================
+function setProgress(pct, msg) {
+  if (pct !== null) {
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('progress-text').textContent = Math.round(pct) + '%';
+  }
+  document.getElementById('proc-msg').textContent = msg;
+}
+
+async function fetchWithRetry(url, options, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url, options);
+      return res;
+    } catch (e) {
+      if (attempt === maxRetries) throw e;
+      const delay = attempt * 2000;
+      setProgress(null, 'Netværksfejl – prøver igen om ' + (delay/1000) + ' sek... (forsøg ' + attempt + '/' + maxRetries + ')');
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+}
+
+async function processAllChunks() {
+  showScreen('screen-processing');
+  const apiKey = localStorage.getItem('mr_apikey');
+  setProgress(5, 'Starter transskription...');
+
+  try {
+    const transcripts = [];
+    for (let i = 0; i < allChunks.length; i++) {
+      const pct = 5 + (i / allChunks.length) * 55;
+      setProgress(pct, 'Transskriberer del ' + (i+1) + ' af ' + allChunks.length + '...');
+
+      const formData = new FormData();
+      const ext = getExtFromBlob(allChunks[i]);
+      formData.append('file', allChunks[i], 'audio_' + i + '.' + ext);
+      formData.append('model', 'whisper-1');
+      formData.append('response_format', 'text');
+
+      const res = await fetchWithRetry('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + apiKey },
+        body: formData
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error('Whisper fejl: ' + (e.error?.message || res.statusText));
+      }
+      transcripts.push(await res.text());
+    }
+
+    setProgress(65, 'Detecting language...');
+    const fullTranscript = transcripts.join('\n\n[--- new section ---]\n\n');
+    const org = document.getElementById('org-name').value || '';
+    const title = document.getElementById('meeting-title').value || 'Meeting';
+    const attendees = document.getElementById('attendees').value || '';
+    const absent = document.getElementById('absent').value || '';
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('da-DK', {day:'2-digit',month:'2-digit',year:'numeric'});
+
+    // Detect language from first 300 chars of transcript
+    const sample = fullTranscript.slice(0, 300);
+    const langRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        max_tokens: 5,
+        messages: [
+          { role: 'user', content: 'What language is this text? Reply with only: "english" or "danish".\n\n' + sample }
+        ]
+      })
+    });
+    const langData = await langRes.json();
+    const detectedLang = (langData.choices[0].message.content || '').toLowerCase().trim();
+    const isEnglish = detectedLang.includes('english');
+
+    setProgress(70, 'Writing minutes...');
+
+    const systemPrompt = isEnglish
+      ? `You are a secretary writing formal meeting minutes in ENGLISH.
+Write the minutes with this header:
+Organisation: ${org || '(organisation)'}
+Meeting: ${title}
+Date: ${dateStr}
+Present: ${attendees || '(from transcript)'}
+${absent ? 'Apologies: ' + absent : ''}
+
+${agendaText ? 'Agenda:\n' + agendaText + '\n\nFollow the agenda points in order. Write what was decided and discussed under each point.' : 'No agenda provided. Structure the minutes chronologically.'}
+
+Write formally and concisely in ENGLISH. Focus on decisions and action points.`
+      : `Du er sekretær og skriver formelt mødereferat på DANSK.
+Skriv referatet med denne header:
+Organisation: ${org || '(organisation)'}
+Møde: ${title}
+Dato: ${dateStr}
+Til stede: ${attendees || '(fra transskription)'}
+${absent ? 'Afbud: ' + absent : ''}
+
+${agendaText ? 'Dagsorden:\n' + agendaText + '\n\nFølg dagsordenens punkter i rækkefølge.' : 'Ingen dagsorden. Strukturer referatet kronologisk.'}
+
+Skriv formelt og kortfattet på DANSK. Fokuser på beslutninger og handlingspunkter.`;
+
+    const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        max_tokens: 3000,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: 'Transcript:\n\n' + fullTranscript }
+        ]
+      })
+    });
+
+    if (!gptRes.ok) {
+      const e = await gptRes.json().catch(() => ({}));
+      throw new Error('GPT-4 fejl: ' + (e.error?.message || gptRes.statusText));
+    }
+
+    setProgress(90, 'Genererer fil...');
+    const gptData = await gptRes.json();
+    lastReferat = gptData.choices[0].message.content;
+
+    setProgress(100, 'Klar!');
+    if (window._wakeLock) { window._wakeLock.release(); window._wakeLock = null; }
+    shareReferat();
+
+  } catch(e) {
+    if (window._wakeLock) { window._wakeLock.release(); window._wakeLock = null; }
+    showScreen('screen-record');
+    document.getElementById('record-error').textContent = '⚠ Fejl: ' + e.message;
+    document.getElementById('record-error').classList.add('show');
+    const btn = document.getElementById('record-btn');
+    btn.className = 'record-circle idle';
+    document.getElementById('record-icon').textContent = '🎙';
+    document.getElementById('record-label').textContent = 'Optag';
+    document.getElementById('timer-label').textContent = 'Tryk for at starte mødet';
+  }
+}
+
+// ===================== SHARE =====================
+function shareReferat() {
+  const email = localStorage.getItem('mr_email') || '';
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('da-DK', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const title = document.getElementById('meeting-title').value || 'Meeting';
+  const isEnglish = lastReferat.slice(0,200).match(/\b(the|and|meeting|present|agenda|minutes)\b/i);
+  const prefix = isEnglish ? 'Minutes' : 'Referat';
+  const fileName = prefix + '_' + now.toISOString().slice(0,10) + '.txt';
+  const shareTitle = prefix + ' — ' + title + ' ' + dateStr;
+  const blob = new Blob([lastReferat], {type: 'text/plain'});
+  const file = new File([blob], fileName, {type: 'text/plain'});
+
+  if (navigator.canShare && navigator.canShare({files:[file]})) {
+    navigator.share({
+      title: shareTitle,
+      text: lastReferat,
+      files: [file]
+    }).catch(e => { if (e.name !== 'AbortError') console.error(e); });
+  } else if (navigator.share) {
+    navigator.share({ title: shareTitle, text: lastReferat })
+      .catch(e => { if (e.name !== 'AbortError') console.error(e); });
+  } else {
+    const body = encodeURIComponent(lastReferat);
+    window.location.href = 'mailto:' + email + '?subject=' + encodeURIComponent(shareTitle) + '&body=' + body;
+  }
+
+  document.getElementById('done-msg').textContent = 'Tilføj underskrift og eventuelle bilag inden du sender det videre.';
+  showScreen('screen-done');
+}
+
+function shareAgain() { if (lastReferat) shareReferat(); }
+
+// ===================== NEW MEETING =====================
+function startNew() {
+  allChunks = []; audioChunks = []; seconds = 0; chunkSeconds = 0;
+  agendaText = '';
+  document.getElementById('attendees').value = '';
+  document.getElementById('absent').value = '';
+  clearAgenda();
+  document.getElementById('record-btn').className = 'record-circle idle';
+  document.getElementById('record-icon').textContent = '🎙';
+  document.getElementById('record-label').textContent = 'Optag';
+  document.getElementById('timer').textContent = '00:00';
+  document.getElementById('timer-label').textContent = 'Tryk for at starte mødet';
+  document.getElementById('chunk-info').textContent = '';
+  document.getElementById('record-error').classList.remove('show');
+  document.getElementById('audio-file').value = '';
+  showScreen('screen-home');
+}
+
+// ===================== HELPERS =====================
+function getSupportedMimeType() {
+  const types = ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/wav'];
+  for (const t of types) { if (MediaRecorder.isTypeSupported(t)) return t; }
+  return '';
+}
+function getExtFromBlob(blob) {
+  const type = blob.type || '';
+  if (type.includes('mp4')) return 'm4a';
+  if (type.includes('ogg')) return 'ogg';
+  if (type.includes('wav')) return 'wav';
+  if (type.includes('mp3')) return 'mp3';
+  return 'webm';
+}
+function formatTime(s) {
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60).toString().padStart(2,'0');
+  const sec = (s%60).toString().padStart(2,'0');
+  return h > 0 ? h + ':' + m + ':' + sec : m + ':' + sec;
+}
+</script>
+
+</body>
+</html>
