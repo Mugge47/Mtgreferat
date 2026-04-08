@@ -473,7 +473,7 @@ let recordingTimer = null;
 let chunkTimer = null;
 let seconds = 0;
 let chunkSeconds = 0;
-let CHUNK_DURATION = 20 * 60; // 20 minutes per chunk
+let CHUNK_DURATION = 2 * 60; // 20 minutes per chunk
 let agendaText = '';
 let lastReferat = '';
 
@@ -925,10 +925,29 @@ async function processAllChunks() {
     const detectedLang = (langData.choices[0].message.content || '').toLowerCase().trim();
     const isEnglish = detectedLang.includes('english');
 
-    setProgress(70, 'Writing minutes...');
+    setProgress(70, 'Skriver referat...');
 
-    const systemPrompt = isEnglish
-      ? `You are a secretary writing formal meeting minutes in ENGLISH.
+    // Split transcript into chunks of max 12000 chars (~3000 tokens)
+    const TRANSCRIPT_CHUNK_SIZE = 200;
+    const transcriptChunks = [];
+    let remaining = fullTranscript;
+    while (remaining.length > 0) {
+      // Try to split at a sentence boundary
+      let cutAt = TRANSCRIPT_CHUNK_SIZE;
+      if (remaining.length > TRANSCRIPT_CHUNK_SIZE) {
+        const boundary = remaining.lastIndexOf('. ', TRANSCRIPT_CHUNK_SIZE);
+        cutAt = boundary > TRANSCRIPT_CHUNK_SIZE * 0.7 ? boundary + 2 : TRANSCRIPT_CHUNK_SIZE;
+      }
+      transcriptChunks.push(remaining.slice(0, cutAt));
+      remaining = remaining.slice(cutAt);
+    }
+
+    let lastRefератParts = [];
+
+    if (transcriptChunks.length === 1) {
+      // Short meeting — single GPT call
+      const systemPrompt = isEnglish
+        ? `You are a secretary writing formal meeting minutes in ENGLISH.
 Write the minutes with this header:
 Organisation: ${org || '(organisation)'}
 Meeting: ${title}
@@ -939,7 +958,7 @@ ${absent ? 'Apologies: ' + absent : ''}
 ${agendaText ? 'Agenda:\n' + agendaText + '\n\nFollow the agenda points in order. Write what was decided and discussed under each point.' : 'No agenda provided. Structure the minutes chronologically.'}
 
 Write formally and concisely in ENGLISH. Focus on decisions and action points.`
-      : `Du er sekretær og skriver formelt mødereferat på DANSK.
+        : `Du er sekretær og skriver formelt mødereferat på DANSK.
 Skriv referatet med denne header:
 Organisation: ${org || '(organisation)'}
 Møde: ${title}
@@ -951,27 +970,100 @@ ${agendaText ? 'Dagsorden:\n' + agendaText + '\n\nFølg dagsordenens punkter i r
 
 Skriv formelt og kortfattet på DANSK. Fokuser på beslutninger og handlingspunkter.`;
 
-    const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        max_tokens: 3000,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Transcript:\n\n' + fullTranscript }
-        ]
-      })
-    });
+      const gptRes = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          max_tokens: 3000,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: 'Transcript:\n\n' + transcriptChunks[0] }
+          ]
+        })
+      });
+      if (!gptRes.ok) {
+        const e = await gptRes.json().catch(() => ({}));
+        throw new Error('GPT-4 fejl: ' + (e.error?.message || gptRes.statusText));
+      }
+      const gptData = await gptRes.json();
+      lastReferat = gptData.choices[0].message.content;
 
-    if (!gptRes.ok) {
-      const e = await gptRes.json().catch(() => ({}));
-      throw new Error('GPT-4 fejl: ' + (e.error?.message || gptRes.statusText));
+    } else {
+      // Long meeting — summarise each chunk, then combine
+      const partPrompt = isEnglish
+        ? 'You are taking notes on a section of a meeting transcript. Extract all decisions, action points, and key discussion points. Be concise but complete. This is part of a longer meeting.'
+        : 'Du tager noter fra en del af en mødetransskription. Uddrag alle beslutninger, handlingspunkter og vigtige diskussionspunkter. Vær kortfattet men komplet. Dette er en del af et længere møde.';
+
+      for (let i = 0; i < transcriptChunks.length; i++) {
+        const pct = 70 + (i / transcriptChunks.length) * 15;
+        setProgress(pct, (isEnglish ? 'Summarising part ' : 'Opsummerer del ') + (i+1) + ' af ' + transcriptChunks.length + '...');
+        const partRes = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            max_tokens: 1500,
+            messages: [
+              { role: 'system', content: partPrompt },
+              { role: 'user', content: transcriptChunks[i] }
+            ]
+          })
+        });
+        if (!partRes.ok) {
+          const e = await partRes.json().catch(() => ({}));
+          throw new Error('GPT-4 fejl del ' + (i+1) + ': ' + (e.error?.message || partRes.statusText));
+        }
+        const partData = await partRes.json();
+        lastRefератParts.push(partData.choices[0].message.content);
+      }
+
+      // Final combination call
+      setProgress(87, isEnglish ? 'Writing final minutes...' : 'Skriver endeligt referat...');
+      const combinedNotes = lastRefератParts.join('\n\n[--- næste del ---]\n\n');
+      const finalPrompt = isEnglish
+        ? `You are a secretary writing formal meeting minutes in ENGLISH based on summarised notes.
+Write the minutes with this header:
+Organisation: ${org || '(organisation)'}
+Meeting: ${title}
+Date: ${dateStr}
+Present: ${attendees || '(from transcript)'}
+${absent ? 'Apologies: ' + absent : ''}
+
+${agendaText ? 'Agenda:\n' + agendaText + '\n\nFollow the agenda points in order.' : 'No agenda provided. Structure the minutes chronologically.'}
+
+Write formally and concisely in ENGLISH. Focus on decisions and action points.`
+        : `Du er sekretær og skriver formelt mødereferat på DANSK baseret på opsummerede noter.
+Skriv referatet med denne header:
+Organisation: ${org || '(organisation)'}
+Møde: ${title}
+Dato: ${dateStr}
+Til stede: ${attendees || '(fra transskription)'}
+${absent ? 'Afbud: ' + absent : ''}
+
+${agendaText ? 'Dagsorden:\n' + agendaText + '\n\nFølg dagsordenens punkter i rækkefølge.' : 'Ingen dagsorden. Strukturer referatet kronologisk.'}
+
+Skriv formelt og kortfattet på DANSK. Fokuser på beslutninger og handlingspunkter.`;
+
+      const finalRes = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          max_tokens: 3000,
+          messages: [
+            { role: 'system', content: finalPrompt },
+            { role: 'user', content: combinedNotes }
+          ]
+        })
+      });
+      if (!finalRes.ok) {
+        const e = await finalRes.json().catch(() => ({}));
+        throw new Error('GPT-4 fejl (endelig): ' + (e.error?.message || finalRes.statusText));
+      }
+      const finalData = await finalRes.json();
+      lastReferat = finalData.choices[0].message.content;
     }
-
-    setProgress(90, 'Genererer fil...');
-    const gptData = await gptRes.json();
-    lastReferat = gptData.choices[0].message.content;
 
     setProgress(100, 'Klar!');
     if (window._wakeLock) { window._wakeLock.release(); window._wakeLock = null; }
