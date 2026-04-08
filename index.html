@@ -473,7 +473,7 @@ let recordingTimer = null;
 let chunkTimer = null;
 let seconds = 0;
 let chunkSeconds = 0;
-let CHUNK_DURATION = 2 * 60; // 20 minutes per chunk
+let CHUNK_DURATION = 15 * 60; // 15 minutes per chunk
 let agendaText = '';
 let lastReferat = '';
 
@@ -928,7 +928,7 @@ async function processAllChunks() {
     setProgress(70, 'Skriver referat...');
 
     // Split transcript into chunks of max 12000 chars (~3000 tokens)
-    const TRANSCRIPT_CHUNK_SIZE = 200;
+    const TRANSCRIPT_CHUNK_SIZE = 10000;
     const transcriptChunks = [];
     let remaining = fullTranscript;
     while (remaining.length > 0) {
